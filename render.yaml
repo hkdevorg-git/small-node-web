@@ -1,0 +1,9 @@
+services:
+  - type: web
+    name: small-node-web
+    runtime: docker
+    plan: free
+    region: oregon
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /health
