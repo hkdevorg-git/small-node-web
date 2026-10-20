@@ -5,7 +5,7 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm ci --omit=dev
 
-COPY server.js send-test-email.js ./
+COPY server.js email.js send-test-email.js ./
 
 USER node
 
