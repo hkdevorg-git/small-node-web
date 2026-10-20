@@ -34,7 +34,12 @@ const server = http.createServer(async (req, res) => {
       sendJson(res, 200, { ok: true, messageId: info.messageId });
     } catch (error) {
       console.error("Failed to send email:", error.message);
-      sendJson(res, 500, { error: "Could not send the test email." });
+      const smtpBlocked = ["ETIMEDOUT", "ESOCKET"].includes(error.code);
+      sendJson(res, smtpBlocked ? 502 : 500, {
+        error: smtpBlocked
+          ? "Gmail SMTP is blocked on Render Free. This app needs an HTTPS email API or a service that permits SMTP."
+          : "Could not send the test email. Check the server logs for the mail error.",
+      });
     } finally {
       sending = false;
     }
@@ -67,13 +72,16 @@ const server = http.createServer(async (req, res) => {
         button.disabled = true;
         status.textContent = "Sending…";
         try {
-          const response = await fetch("/send-email", { method: "POST" });
+          const response = await fetch("/send-email", {
+            method: "POST",
+            signal: AbortSignal.timeout(15000)
+          });
           const result = await response.json();
           status.textContent = response.ok
             ? "Email sent successfully."
             : result.error;
         } catch {
-          status.textContent = "Request failed. Please try again.";
+          status.textContent = "The request timed out. Check Render's email settings and logs.";
         } finally {
           button.disabled = false;
         }

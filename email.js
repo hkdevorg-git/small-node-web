@@ -12,6 +12,9 @@ async function sendTestEmail() {
   const transporter = nodemailer.createTransport({
     service: "gmail",
     auth: { user: from, pass },
+    connectionTimeout: 8_000,
+    greetingTimeout: 8_000,
+    socketTimeout: 12_000,
   });
 
   await transporter.verify();
