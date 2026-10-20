@@ -33,13 +33,14 @@ const server = http.createServer(async (req, res) => {
       lastSentAt = Date.now();
       sendJson(res, 200, { ok: true, messageId: info.messageId });
     } catch (error) {
-      console.error("Failed to send email:", error.message);
-      const smtpBlocked = ["ETIMEDOUT", "ESOCKET"].includes(error.code);
-      sendJson(res, smtpBlocked ? 502 : 500, {
-        error: smtpBlocked
-          ? "Gmail SMTP is blocked on Render Free. This app needs an HTTPS email API or a service that permits SMTP."
-          : "Could not send the test email. Check the server logs for the mail error.",
-      });
+      console.error("Failed to send email:", error.code || error.message);
+      const status = error.code === "MISSING_GMAIL_OAUTH_CONFIG" ? 503 : 502;
+      const message = error.code === "MISSING_GMAIL_OAUTH_CONFIG"
+        ? "Google OAuth is not configured. Add the Gmail API credentials in Render."
+        : error.code === "GOOGLE_OAUTH_FAILED" || error.code === "GMAIL_API_FAILED"
+          ? "Google rejected the authorization or send request. Check the OAuth setup and Gmail API access."
+          : "The Gmail API request failed or timed out. Try again shortly.";
+      sendJson(res, status, { error: message });
     } finally {
       sending = false;
     }
@@ -53,7 +54,7 @@ const server = http.createServer(async (req, res) => {
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Nodemailer Email Test</title>
+    <title>Gmail API Email Test</title>
     <style>
       body { font-family: system-ui, sans-serif; max-width: 34rem; margin: 4rem auto; padding: 0 1rem; }
       button { padding: .7rem 1rem; cursor: pointer; }
@@ -61,7 +62,7 @@ const server = http.createServer(async (req, res) => {
     </style>
   </head>
   <body>
-    <h1>Nodemailer Gmail Test</h1>
+    <h1>Gmail API Test</h1>
     <p>Send a test message to the configured recipient.</p>
     <button id="send" type="button">Send test email</button>
     <p id="status" role="status"></p>
